@@ -117,13 +117,7 @@ def summary(hours, minutes):
     console.print(table)
     
     coverage_percentage = (total_duration / requested_duration) * 100
-    console.print(f"[bold green]Tracking coverage:[/bold green] {coverage_percentage:.2f}%")
-    
-    if gaps:
-        console.print(f"\n[yellow]Detected gaps within tracked time:[/yellow] {len(gaps)}")
-        console.print("[yellow]Largest gaps within tracked time:[/yellow]")
-        for start, end, duration in sorted(gaps, key=lambda x: x[2], reverse=True)[:5]:
-            console.print(f"  From {start} to {end} ({format_time(duration)})")
+    console.print(f"[bold green]Tracking coverage:[/bold green] {coverage_percentage:.2f}%") 
     
     console.print("\n[bold cyan]Top activities (% of tracked time):[/bold cyan]")
     activities_table = Table(box=box.SIMPLE)
