@@ -127,7 +127,7 @@ def summary(hours, minutes):
 
     for activity, duration in sorted(activity_summary.items(), key=lambda x: x[1], reverse=True):
         percentage = (duration / total_duration) * 100
-        if percentage > 0:
+        if percentage > .5:
             activities_table.add_row(
                 activity, 
                 format_time(duration),
