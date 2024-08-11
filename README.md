@@ -25,12 +25,13 @@ WhatDid is a personal activity tracking application designed for macOS that capt
 
 2. **Install Poetry** (if you haven't already):
     ```sh
-    curl -sSL https://install.python-poetry.org | python3 -
+    brew install poetry
     ```
 
-3. **Install Dependencies**:
+1. **Install Dependencies and set up the shell**:
     ```sh
     poetry install
+    poetry shell
     ```
 
 4. **Set Up the Database**:

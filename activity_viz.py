@@ -125,13 +125,14 @@ def summary(hours, minutes):
     activities_table.add_column("Duration", style="magenta")
     activities_table.add_column("Percentage", style="green")
 
-    for activity, duration in sorted(activity_summary.items(), key=lambda x: x[1], reverse=True)[:10]:
+    for activity, duration in sorted(activity_summary.items(), key=lambda x: x[1], reverse=True):
         percentage = (duration / total_duration) * 100
-        activities_table.add_row(
-            activity, 
-            format_time(duration),
-            f"{percentage:.2f}%"
-        )
+        if percentage > 0:
+            activities_table.add_row(
+                activity, 
+                format_time(duration),
+                f"{percentage:.2f}%"
+            )
 
     console.print(activities_table)
 
