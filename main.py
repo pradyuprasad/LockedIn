@@ -77,7 +77,7 @@ def main():
             if (app_name != last_app_name or 
                 window_title != last_window_title or 
                 url != last_url or 
-                (last_insert_time and (time.time() - last_insert_time) >= 1)):  # Force update every 5 minutes
+                (last_insert_time and (time.time() - last_insert_time) >= 1)):  # Force update every second 
                 
                 insert_activity(conn, current_time, app_name, window_title, url)
                 

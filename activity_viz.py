@@ -8,7 +8,8 @@ from rich.table import Table
 from rich.panel import Panel
 from rich import box
 
-MAX_GAP = 300  # Maximum gap in seconds (5 minutes) before considering it as inactivity
+MAX_GAP = 10  # Maximum gap in seconds (5 minutes) before considering it as inactivity
+MAX_ACTIVITY_LENGTH = 50  # Maximum length for activity names before truncation
 
 console = Console()
 
@@ -20,6 +21,9 @@ def get_domain(url):
         return urlparse(url).netloc
     except:
         return "Unknown"
+
+def truncate_string(s, max_length):
+    return s[:max_length-3] + '...' if len(s) > max_length else s
 
 def process_activities(results):
     activity_summary = defaultdict(int)
@@ -38,9 +42,9 @@ def process_activities(results):
 
         if last_timestamp and last_activity:
             duration = (current_timestamp - last_timestamp).total_seconds()
-            if duration > MAX_GAP:
+            if duration > MAX_GAP or last_activity == "loginwindow":
                 gaps.append((last_timestamp, current_timestamp, duration))
-            else:
+            elif last_activity != "loginwindow":
                 activity_summary[last_activity] += duration
                 total_duration += duration
 
@@ -117,24 +121,35 @@ def summary(hours, minutes):
     console.print(table)
     
     coverage_percentage = (total_duration / requested_duration) * 100
-    console.print(f"[bold green]Tracking coverage:[/bold green] {coverage_percentage:.2f}%") 
+    console.print(f"[bold green]Tracking coverage:[/bold green] {coverage_percentage:.2f}%")
     
-    console.print("\n[bold cyan]Top activities (% of tracked time):[/bold cyan]")
+    if gaps:
+        console.print(f"\n[yellow]Detected gaps within tracked time:[/yellow] {len(gaps)}")
+        console.print("[yellow]Largest gaps within tracked time:[/yellow]")
+        for start, end, duration in sorted(gaps, key=lambda x: x[2], reverse=True)[:5]:
+            console.print(f"  From {start} to {end} ({format_time(duration)})")
+    
+    console.print("\n[bold cyan]Top activities (% of tracked time, excluding sleep):[/bold cyan]")
     activities_table = Table(box=box.SIMPLE)
     activities_table.add_column("Activity", style="cyan")
     activities_table.add_column("Duration", style="magenta")
     activities_table.add_column("Percentage", style="green")
 
     for activity, duration in sorted(activity_summary.items(), key=lambda x: x[1], reverse=True):
-        percentage = (duration / total_duration) * 100
-        if percentage > .5:
-            activities_table.add_row(
-                activity, 
-                format_time(duration),
-                f"{percentage:.2f}%"
-            )
+        if activity != "loginwindow":
+            percentage = (duration / total_duration) * 100
+            if percentage > 0.5:
+                activities_table.add_row(
+                    truncate_string(activity, MAX_ACTIVITY_LENGTH),
+                    format_time(duration),
+                    f"{percentage:.2f}%"
+                )
 
     console.print(activities_table)
+
+    # Add a note about sleep time
+    sleep_time = sum(duration for start, end, duration in gaps if duration > MAX_GAP)
+    console.print(f"\n[yellow]Note: Your device was likely asleep or locked for approximately {format_time(sleep_time)}.[/yellow]")
 
     conn.close()
 
