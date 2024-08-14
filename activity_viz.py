@@ -8,7 +8,7 @@ from rich.table import Table
 from rich.panel import Panel
 from rich import box
 
-MAX_GAP = 10  # Maximum gap in seconds (5 minutes) before considering it as inactivity
+MAX_GAP = 10  # Maximum gap in seconds (10 seconds) before considering it as inactivity
 MAX_ACTIVITY_LENGTH = 50  # Maximum length for activity names before truncation
 
 console = Console()
