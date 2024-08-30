@@ -2,6 +2,8 @@ import time
 import sqlite3
 from AppKit import NSWorkspace
 import subprocess
+import select
+import sys
 
 def run_applescript(script):
     try:
@@ -45,22 +47,22 @@ def get_active_window_info():
         return None
     return None  # If we get here, something unexpected happened
 
-def insert_activity(conn, timestamp, app_name, window_title, url):
+def insert_activity(conn, timestamp, app_name, window_title, url, session_name):
     cursor = conn.cursor()
     cursor.execute('''
-    INSERT INTO activities (timestamp, app_name, window_title, url)
-    VALUES (?, ?, ?, ?)
-    ''', (timestamp, app_name, window_title, url))
+    INSERT INTO activities (timestamp, app_name, window_title, url, session)
+    VALUES (?, ?, ?, ?, ?)
+    ''', (timestamp, app_name, window_title, url, session_name))
     conn.commit()
-    print(f"inserted {timestamp}, {app_name}, {window_title}, {url}")
+    print(f"inserted {timestamp}, {app_name}, {window_title}, {url}, {session_name}")
 
 def main():
+    current_session = None
     conn = sqlite3.connect('tracker.db')
     
-    last_app_name = None
-    last_window_title = None
-    last_url = None
-    last_insert_time = None
+    print("Activity tracking started. Use the following commands:")
+    print("n: Start a new session")
+    print("s: Stop the current session")
     
     try:
         while True:
@@ -68,25 +70,28 @@ def main():
             window_info = get_active_window_info()
             
             if window_info is None:
-                print("Failed to get window info. Retrying in 1 second...")
-                time.sleep(1)
-                continue
+                print(f"{current_time}: Failed to get window info. Retrying...")
+            else:
+                app_name, window_title, url = window_info
+                insert_activity(conn, current_time, app_name, window_title, url, current_session)
             
-            app_name, window_title, url = window_info
+            # Check for user input (non-blocking)
+            rlist, _, _ = select.select([sys.stdin], [], [], 0.1)
+            if rlist:
+                user_input = sys.stdin.readline().strip().lower()
+                if user_input == 'n':
+                    current_session = input("Enter new session name: ")
+                    print(f"New session started: {current_session}")
+                elif user_input == 's':
+                    if current_session:
+                        print(f"Session '{current_session}' stopped.")
+                        current_session = None
+                    else:
+                        print("No active session to stop.")
+                else:
+                    print("Invalid command. Use 'n' for new session, 's' to stop session")
             
-            if (app_name != last_app_name or 
-                window_title != last_window_title or 
-                url != last_url or 
-                (last_insert_time and (time.time() - last_insert_time) >= 1)):  # Force update every second 
-                
-                insert_activity(conn, current_time, app_name, window_title, url)
-                
-                last_app_name = app_name
-                last_window_title = window_title
-                last_url = url
-                last_insert_time = time.time()
-            
-            time.sleep(1)  # Check every second
+            time.sleep(.9)  # Sleep for 0.9 seconds to account for processing time
             
     except KeyboardInterrupt:
         print("\nTracking stopped.")
