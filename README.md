@@ -41,7 +41,7 @@ WhatDid is a personal activity tracking application designed for macOS that capt
 
 5. **Run the Tracker**:
     ```sh
-    python main.py
+    python main.py start
     ```
 
 ## Usage
