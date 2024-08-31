@@ -2972,4 +2972,4 @@ jupyter = ["ipywidgets (>=7.5.1,<9)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "664b430ff91100da272f5a257edc707f74a25e0f5545f9f0d5d9de534260c08f"
+content-hash = "2a80c31b5453d4bb9cdddca167e93cb73adbfcf724ac1e00bf7cf4145a48be2e"
