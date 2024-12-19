@@ -255,6 +255,9 @@ def timeline(hours, minutes):
         merged.append((start, end, duration, activity))
         i += 1
 
+    merged = list(reversed(merged))
+
+
     # Add rows to table with gap indicators
     last_end = None
     for start_time, end_time, duration, activity in merged:
