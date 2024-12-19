@@ -59,6 +59,12 @@ uv run python activity_viz.py summary --hours 1  # for the last hour
 uv run python activity_viz.py summary --minutes 30  # for the last 30 minutes
 ```
 
+### Session Management
+While tracking is running, you can use the following keyboard commands:
+- `n`: Start a new session (you'll be prompted to enter a session name)
+- `s`: Stop the current session
+- `q`: Quit tracking completely
+
 ### Convert Timestamps
 
 If you need to convert UTC timestamps in the database to your local timezone, run:
