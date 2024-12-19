@@ -1,2 +1,3 @@
 **.db
 tracker.db
+__pycache__/
