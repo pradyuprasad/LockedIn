@@ -1,6 +1,6 @@
-# WhatDid - Personal Activity Tracker for macOS
+# LockedIn - Personal Activity Tracker for macOS
 
-WhatDid is a personal activity tracking application designed for macOS that captures application usage and web activities. It provides insightful summaries and reports to help you understand how you spend your time on your computer.
+LockedIn is a personal activity tracking application designed for macOS that captures application usage and web activities. It provides insightful summaries and reports to help you understand how you spend your time on your computer.
 
 ## Features
 
@@ -12,42 +12,41 @@ WhatDid is a personal activity tracking application designed for macOS that capt
 ## Prerequisites
 
 - **macOS**
-- **Python 3.12 or later**
-- **Homebrew** (for installing any additional dependencies)
+- **Python 3.10 or later**
+- **uv** (for managing Python dependencies)
 
 ## Installation
 
 1. **Clone the Repository**:
     ```sh
-    git clone https://github.com/pradyuprasad/whatdid.git
-    cd whatdid
+    git clone https://github.com/pradyuprasad/LockedIn.git
+    cd LockedIn
     ```
 
-2. **Install Poetry** (if you haven't already):
-    ```sh
-    brew install poetry
-    ```
+2. **Install uv** (if you haven't already):
+   ```sh
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   ```
 
 1. **Install Dependencies and set up the shell**:
     ```sh
-    poetry install
-    poetry shell
+    uv sync
     ```
 
 4. **Set Up the Database**:
     ```sh
-    python db_setup.py
+    uv run db_setup.py
     ```
 
 5. **Run the Tracker**:
     ```sh
-    python main.py start
+    uv run main.py start
     ```
 
 ## Usage
 
 ### Create DBs
-First run db_setup.py
+First run `uv run db_setup.py`
 ### Start Tracking
 
 To start tracking your application and web usage, run the `main.py` script. This script will continuously log your active applications and URLs into the database.
@@ -56,8 +55,8 @@ To start tracking your application and web usage, run the `main.py` script. This
 
 To generate a summary of your activity over the past specified time period, use the `activity_viz.py` script. You can summarize by hours or minutes:
 ```sh
-python activity_viz.py summary --hours 1  # for the last hour
-python activity_viz.py summary --minutes 30  # for the last 30 minutes
+uv run python activity_viz.py summary --hours 1  # for the last hour
+uv run python activity_viz.py summary --minutes 30  # for the last 30 minutes
 ```
 
 ### Convert Timestamps
@@ -74,21 +73,19 @@ python conversion_script.py
 - **`conversion_script.py`**: Converts timestamps in the database to the local timezone.
 - **`db_setup.py`**: Creates the SQLite database and activities table.
 - **`tracker.db`**: SQLite database that stores all activity logs.
-- **`output.txt`**: Default output file for various scripts.
-- **`poetry.lock` & `pyproject.toml`**: Manage project dependencies and configurations.
 
 ## Example Commands
 
 To get an activity summary for the last 2 hours:
 
 ```sh
-python activity_viz.py summary --hours 2
+uv run python activity_viz.py summary --hours 2
 ```
 
 To convert all timestamps in `tracker.db` to the local timezone:
 
 ```sh
-python conversion_script.py
+uv run python conversion_script.py
 ```
 
 ## Author
