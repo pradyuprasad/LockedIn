@@ -6,7 +6,6 @@ LockedIn is a personal activity tracking application designed for macOS that cap
 
 - **Real-time Activity Tracking**: Monitors and records active applications and visited URLs.
 - **Activity Summarization**: Offers detailed summaries for specified time periods (hours or minutes).
-- **Timezone Conversion**: Converts UTC timestamps to your local timezone for more relevant insights.
 - **Database Management**: SQLite database handles all activity records effortlessly.
 
 ## Prerequisites
@@ -65,12 +64,6 @@ While tracking is running, you can use the following keyboard commands:
 - `s`: Stop the current session
 - `q`: Quit tracking completely
 
-### Convert Timestamps
-
-If you need to convert UTC timestamps in the database to your local timezone, run:
-```sh
-python conversion_script.py
-```
 
 ## File Descriptions
 
