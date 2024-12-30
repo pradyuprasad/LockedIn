@@ -1,28 +1,15 @@
-import sqlite3
 import time
-import yaml
-import subprocess
-from datetime import datetime
 import click
+from datetime import datetime
 from pathlib import Path
+import sqlite3
+import yaml
+from typing import Dict, Optional
 
-def notify(title, message):
-    """Multi-channel notification"""
-    try:
-        # 1. System notification
-        subprocess.run([
-            'osascript',
-            '-e', f'display notification "{message}" with title "{title}" sound name "Glass"'
-        ])
-
-        # 2. Terminal bell (makes a sound and may flash the terminal)
-        print('\a', flush=True)
-
-        # 3. Print to terminal with visible formatting
-        print(f"\n🚨 {title}: {message}")
-
-    except Exception as e:
-        print(f"Error sending notification: {e}")
+from focus_utils import (
+    notify, calculate_activity_metrics, calculate_score_components,
+    get_score_emoji
+)
 
 class FocusSession:
     def __init__(self, config_path='focus_config.yml'):
@@ -33,18 +20,23 @@ class FocusSession:
         self.violations = []
         self.current_violation = None
         self.violation_start_time = None
-        self.MIN_VIOLATION_TIME = 5  # seconds before counting as violation
+        self.MIN_VIOLATION_TIME = 30
 
-        # Score configuration
+        # Scoring configuration
         self.score_config = {
-            'base_score': 100,
-            'duration_bonus_cap': 20,
-            'violation_penalty': 5,
-            'current_violation_penalty': 10,
+            'DEEP_WORK_THRESHOLD': 1800,     # 30 minutes
+            'SHALLOW_THRESHOLD': 300,        # 5 minutes
+            'MICRO_SWITCH_THRESHOLD': 60,    # 1 minute
+            'RAPID_SWITCH_PENALTY': -15,     # Penalty for rapid context switching
+            'MICRO_SWITCH_PENALTY': -5,      # Penalty for very quick switches
+            'SHALLOW_SWITCH_PENALTY': -3,    # Penalty for short switches
+            'DEEP_WORK_BONUS': 10,          # Bonus for sustained deep work
+            'SHALLOW_WORK_PENALTY': -30,     # Max penalty for shallow work ratio
+            'FRAGMENTATION_PENALTY': -40,    # Max penalty for time fragmentation
             'target_duration_minutes': 60
         }
 
-    def load_config(self, config_path):
+    def load_config(self, config_path: str) -> None:
         if not Path(config_path).exists():
             default_config = {
                 'whitelist': {
@@ -62,7 +54,7 @@ class FocusSession:
         with open(config_path) as f:
             self.config = yaml.safe_load(f)
 
-    def is_violation(self, app_name, url):
+    def is_violation(self, app_name: str, url: Optional[str]) -> Optional[str]:
         if app_name in self.config['blacklist']['apps']:
             return app_name
 
@@ -73,59 +65,41 @@ class FocusSession:
 
         return None
 
-    def calculate_current_score(self):
-        """Calculate the current focus score based on session duration and violations"""
+    def get_score_breakdown(self) -> Dict:
         if not self.session_start:
-            return 0
+            return {"score": 0, "components": [], "timeline": []}
 
-        current_time = datetime.now()
-        duration_minutes = (current_time - self.session_start).total_seconds() / 60
+        cursor = self.db_conn.cursor()
+        session_start_str = self.session_start.strftime("%Y-%m-%d %H:%M:%S")
+        cursor.execute('''
+            SELECT timestamp, app_name, url
+            FROM activities
+            WHERE timestamp >= ?
+            ORDER BY timestamp
+        ''', (session_start_str,))
 
-        # Base score starts at 100
-        base_score = self.score_config['base_score']
+        activities = cursor.fetchall()
+        metrics = calculate_activity_metrics(activities, self.score_config)
+        components, final_score = calculate_score_components(metrics, self.score_config)
 
-        # Duration bonus: up to 20 points for longer sessions
-        duration_bonus = min(self.score_config['duration_bonus_cap'],
-                           duration_minutes / 30)
+        return {
+            "score": final_score,
+            "components": components,
+            "timeline": metrics['timeline']
+        }
 
-        # Violation penalty: -5 points per violation
-        violation_penalty = len(self.violations) * self.score_config['violation_penalty']
-
-        # Current violation penalty: -10 points if currently in violation
-        current_violation_penalty = (self.score_config['current_violation_penalty']
-                                   if self.violation_start_time else 0)
-
-        # Calculate final score
-        score = max(0, base_score + duration_bonus - violation_penalty - current_violation_penalty)
-
-        return score
-
-    def get_score_emoji(self, score):
-        """Return an appropriate emoji based on the focus score"""
-        if score >= 90:
-            return "🌟"
-        elif score >= 80:
-            return "✨"
-        elif score >= 70:
-            return "😊"
-        elif score >= 60:
-            return "😐"
-        else:
-            return "😟"
-
-    def format_time_remaining(self, target_duration_minutes=25):
-        """Format remaining time for a target session duration"""
+    def format_time_remaining(self) -> str:
         if not self.session_start:
             return "0:00"
 
         elapsed_seconds = (datetime.now() - self.session_start).total_seconds()
-        remaining_seconds = max(0, target_duration_minutes * 60 - elapsed_seconds)
+        remaining_seconds = max(0, self.score_config['target_duration_minutes'] * 60 - elapsed_seconds)
 
         minutes = int(remaining_seconds // 60)
         seconds = int(remaining_seconds % 60)
         return f"{minutes}:{seconds:02d}"
 
-    def check_current_activity(self):
+    def check_current_activity(self) -> None:
         cursor = self.db_conn.cursor()
         cursor.execute('''
             SELECT timestamp, app_name, url
@@ -148,7 +122,6 @@ class FocusSession:
                 self.violation_start_time = current_time
                 self.current_violation = violation
             elif violation != self.current_violation:
-                # Reset timer if switched to different violation
                 self.violation_start_time = current_time
                 self.current_violation = violation
             elif (current_time - self.violation_start_time).total_seconds() >= self.MIN_VIOLATION_TIME:
@@ -168,63 +141,72 @@ class FocusSession:
             self.violation_start_time = None
             self.current_violation = None
 
-    def start(self):
+    def display_session_status(self) -> None:
+        current_time = datetime.now()
+        duration = current_time - self.session_start
+        print("\nDeep Work Session Status:")
+        print(f"Duration: {duration.seconds // 3600}h {(duration.seconds // 60) % 60}m {duration.seconds % 60}s")
+        print(f"Time Remaining: {self.format_time_remaining()}")
+        print(f"Context Switches: {len(self.violations)}")
+
+    def display_score_info(self) -> None:
+        score_data = self.get_score_breakdown()
+        current_score = score_data["score"]
+        score_emoji = get_score_emoji(current_score)
+        score_color = "\033[92m" if current_score >= 70 else "\033[93m" if current_score >= 0 else "\033[91m"
+
+        print(f"\nDeep Work Score: {score_color}{current_score:.1f}/100 {score_emoji}\033[0m")
+        print("\nScore Breakdown:")
+        for component, value, explanation in score_data["components"]:
+            if value is not None:
+                sign = "+" if value > 0 else ""
+                color = "\033[92m" if value > 0 else "\033[91m" if value < 0 else "\033[0m"
+                print(f"  {color}{component}: {sign}{value:.1f}\033[0m")
+                if explanation:
+                    print(f"    → {explanation}")
+
+    def display_violations(self) -> None:
+        current_time = datetime.now()
+        if self.current_violation:
+            violation_duration = (current_time - self.violation_start_time).seconds
+            print(f"\n⚠️  Current distraction: {self.current_violation} ({violation_duration}s)")
+
+        if self.violations:
+            print("\nRecent distractions:")
+            recent_violations = self.violations[-3:]
+            for v in reversed(recent_violations):
+                print(f"- {v['app_or_site']} at {v['time'].strftime('%H:%M:%S')}")
+
+    def start(self) -> None:
         self.session_start = datetime.now()
         notify("Focus Mode", "Focus session started")
-
         print(f"\nFocus session started at {self.session_start.strftime('%H:%M:%S')}")
         print("Monitoring for distractions...")
         print("Press Ctrl+C to end session")
 
         try:
             while True:
-                # Clear the screen
                 print("\033c", end="")
-
-                # Display current session info
-                current_time = datetime.now()
-                duration = current_time - self.session_start
-
-                print("\nFocus Session Status:")
-                print(f"Duration: {duration.seconds // 3600}h {(duration.seconds // 60) % 60}m {duration.seconds % 60}s")
-                print(f"Time Remaining: {self.format_time_remaining(self.score_config['target_duration_minutes'])}")
-                print(f"Distractions: {len(self.violations)}")
-
-                # Display current focus score
-                current_score = self.calculate_current_score()
-                score_emoji = self.get_score_emoji(current_score)
-                score_color = "\033[92m" if current_score >= 80 else "\033[93m" if current_score >= 60 else "\033[91m"
-                print(f"\nCurrent Focus Score: {score_color}{current_score:.1f}/100 {score_emoji}\033[0m")
-
-                # Display current violation if any
-                if self.current_violation:
-                    violation_duration = (current_time - self.violation_start_time).seconds
-                    print(f"\n⚠️  Current distraction: {self.current_violation} ({violation_duration}s)")
-
-                # Display recent violations
-                if self.violations:
-                    print("\nRecent distractions:")
-                    recent_violations = self.violations[-3:]  # Show last 3 violations
-                    for v in reversed(recent_violations):
-                        print(f"- {v['app_or_site']} at {v['time'].strftime('%H:%M:%S')}")
-
+                self.display_session_status()
+                self.display_score_info()
+                self.display_violations()
                 self.check_current_activity()
-                time.sleep(2)  # Update every 2 seconds
+                time.sleep(2)
 
         except KeyboardInterrupt:
             self.end()
 
-    def end(self):
+    def end(self) -> None:
         if not self.session_start:
             return
 
         duration = datetime.now() - self.session_start
         final_score = self.calculate_current_score()
 
-        print("\nFocus Session Summary:")
+        print("\nDeep Work Session Summary:")
         print(f"Duration: {duration.seconds // 3600}h {(duration.seconds // 60) % 60}m {duration.seconds % 60}s")
-        print(f"Number of distractions: {len(self.violations)}")
-        print(f"Final Focus Score: {final_score:.1f}/100 {self.get_score_emoji(final_score)}")
+        print(f"Context Switches: {len(self.violations)}")
+        print(f"Final Deep Work Score: {final_score:.1f}/100 {get_score_emoji(final_score)}")
 
         if self.violations:
             print("\nDistraction breakdown:")
@@ -236,8 +218,8 @@ class FocusSession:
                 print(f"- {app_or_site}: {count} times")
 
         notify(
-            "Focus Session Ended",
-            f"Duration: {duration}\nDistractions: {len(self.violations)}\nScore: {final_score:.1f}/100"
+            "Deep Work Session Ended",
+            f"Duration: {duration}\nSwitches: {len(self.violations)}\nScore: {final_score:.1f}/100"
         )
 
 def test_notification():
