@@ -1,93 +1,140 @@
-# LockedIn - Personal Activity Tracker for macOS
+# LockedIn - Personal Activity & Focus Tracker for macOS
 
-LockedIn is a personal activity tracking application designed for macOS that captures application usage and web activities. It provides insightful summaries and reports to help you understand how you spend your time on your computer.
+LockedIn is a productivity suite for macOS that combines activity tracking, focus sessions, and detailed analytics to help you understand and optimize your computer usage patterns.
 
 ## Features
 
-- **Real-time Activity Tracking**: Monitors and records active applications and visited URLs.
-- **Activity Summarization**: Offers detailed summaries for specified time periods (hours or minutes).
-- **Database Management**: SQLite database handles all activity records effortlessly.
+- **Activity Tracking**: Monitor active applications and web browsing in real-time
+- **Focus Sessions**: Maintain concentration with customizable focus rules and real-time scoring
+- **Rich Visualizations**: View your activity patterns through timelines and summaries
+- **Session Management**: Create and track named work sessions
+- **Database-Driven**: Reliable SQLite storage with timezone awareness
 
 ## Prerequisites
 
-- **macOS**
-- **Python 3.10 or later**
-- **uv** (for managing Python dependencies)
+- macOS
+- Python 3.10 or later
+- UV package manager
 
-## Installation
+## Quick Start
 
-1. **Clone the Repository**:
-    ```sh
-    git clone https://github.com/pradyuprasad/LockedIn.git
-    cd LockedIn
-    ```
-
-2. **Install uv** (if you haven't already):
-   ```sh
-   curl -LsSf https://astral.sh/uv/install.sh | sh
-   ```
-
-1. **Install Dependencies and set up the shell**:
-    ```sh
-    uv sync
-    ```
-
-4. **Set Up the Database**:
-    ```sh
-    uv run db_setup.py
-    ```
-
-5. **Run the Tracker**:
-    ```sh
-    uv run main.py start
-    ```
-
-## Usage
-
-### Create DBs
-First run `uv run db_setup.py`
-### Start Tracking
-
-To start tracking your application and web usage, run the `main.py` script. This script will continuously log your active applications and URLs into the database.
-
-### Generate Activity Summary
-
-To generate a summary of your activity over the past specified time period, use the `activity_viz.py` script. You can summarize by hours or minutes:
+1. **Install UV** (if not already installed):
 ```sh
-uv run python activity_viz.py summary --hours 1  # for the last hour
-uv run python activity_viz.py summary --minutes 30  # for the last 30 minutes
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-### Session Management
-While tracking is running, you can use the following keyboard commands:
-- `n`: Start a new session (you'll be prompted to enter a session name)
-- `s`: Stop the current session
-- `q`: Quit tracking completely
-
-
-## File Descriptions
-
-- **`main.py`**: The main tracking script that logs application and URL usage.
-- **`activity_viz.py`**: Provides activity summaries for specified time periods.
-- **`conversion_script.py`**: Converts timestamps in the database to the local timezone.
-- **`db_setup.py`**: Creates the SQLite database and activities table.
-- **`tracker.db`**: SQLite database that stores all activity logs.
-
-## Example Commands
-
-To get an activity summary for the last 2 hours:
-
-```sh
-uv run python activity_viz.py summary --hours 2
+2. **Clone and Setup**
+```
+git clone https://github.com/pradyuprasad/LockedIn.git
+cd LockedIn
+uv sync  # Install dependencies
 ```
 
-To convert all timestamps in `tracker.db` to the local timezone:
-
-```sh
-uv run python conversion_script.py
+3. **Initialize Database**
+```
+uv run db_setup.py
 ```
 
-## Author
+# **Important**: Core Tracking Process
+
+**The main tracking process MUST be running for all other features to work!**
+
+1. Start the tracker in a dedicated terminal window:
+```
+uv run main.py start
+```
+
+2. Keep this process running in the background while using other features
+3. Control the tracking session using:
+   1. n: Start a new named session
+   2. s: Stop current session
+   3. q: Quit tracking
+
+# Features (Requires main.py running)
+## Focus Mode
+Start focus mode in a new terminal window:
+```
+uv run focus.py start
+```
+
+Features:
+
+- Real-time focus score
+- Distraction monitoring
+- Session statistics
+
+## Activity Visualization
+View activity summary (in a new terminal window):
+```
+uv run activity_viz.py summary --hours 2  # Last 2 hours
+uv run activity_viz.py summary --minutes 30  # Last 30 minutes
+```
+
+View activity timeline:
+```
+uv run activity_viz.py timeline --hours 1  # Last hour timeline
+```
+
+Watch live timeline updates:
+```
+uv run watch_timeline.py  # Auto-refreshes every 10 seconds
+```
+
+# Example Workflow
+1. Start Core Tracking (Terminal 1):
+```
+uv run main.py start
+# Keep this running!
+```
+
+2. Start Focus Session (Terminal 2):
+```
+uv run focus.py start
+```
+
+3. Monitor Activity (Terminal 3):
+```
+uv run watch_timeline.py
+```
+
+4. Check Summary (Terminal 4):
+```
+uv run activity_viz.py summary --hours 2
+```
+
+# Configuration
+## Focus Mode Settings
+
+Edit focus_config.yml to customize:
+
+- Whitelisted apps and domains
+- Blacklisted distractions
+
+## Database Management
+```
+uv run db_setup.py
+```
+
+# Component Overview
+
+* **main.py**: **Essential** core tracking engine - must be running for other features to work
+* **focus.py**: Focus session manager with real-time scoring
+* **activity_viz.py**: Activity visualization and reporting tools
+* **watch_timeline.py**: Live activity timeline viewer
+* **db_setup.py**: Database initialization and schema management
+* **tracker.db**: SQLite database storing all activity data
+
+# Troubleshooting
+
+If visualization or focus features aren't working:
+1. Ensure main.py is running in a terminal window
+2. Check tracker.db exists and has recent data
+3. Restart main.py if needed
+
+# Contributing
+
+Contributions are welcome! Please feel free to submit pull requests or create issues for bugs and feature requests.
+
+# Author
 
 Pradyumna
-

@@ -10,5 +10,6 @@ dependencies = [
     "pyobjc-framework-cocoa>=10.3.2",
     "pyobjc>=10.3.2",
     "pytz>=2024.2",
+    "pyyaml>=6.0.2",
     "rich>=13.9.4",
 ]

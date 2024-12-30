@@ -1,3 +1,4 @@
 **.db
 tracker.db
 __pycache__/
+*.yml
