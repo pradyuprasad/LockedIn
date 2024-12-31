@@ -11,5 +11,5 @@ while True:
     clear_screen()
     print(f"Updates every {REFRESH_INTERVAL} seconds...")
     print()
-    timeline.callback(hours=1, minutes=None)
+    timeline.callback(hours=6, minutes=None)
     time.sleep(REFRESH_INTERVAL)

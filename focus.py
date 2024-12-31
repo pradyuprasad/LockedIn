@@ -22,18 +22,28 @@ class FocusSession:
         self.violation_start_time = None
         self.MIN_VIOLATION_TIME = 30
 
-        # Scoring configuration
+        # You can update or add new keys in score_config if desired
         self.score_config = {
-            'DEEP_WORK_THRESHOLD': 1800,     # 30 minutes
-            'SHALLOW_THRESHOLD': 300,        # 5 minutes
-            'MICRO_SWITCH_THRESHOLD': 60,    # 1 minute
-            'RAPID_SWITCH_PENALTY': -15,     # Penalty for rapid context switching
-            'MICRO_SWITCH_PENALTY': -5,      # Penalty for very quick switches
-            'SHALLOW_SWITCH_PENALTY': -3,    # Penalty for short switches
-            'DEEP_WORK_BONUS': 10,          # Bonus for sustained deep work
-            'SHALLOW_WORK_PENALTY': -30,     # Max penalty for shallow work ratio
-            'FRAGMENTATION_PENALTY': -40,    # Max penalty for time fragmentation
-            'target_duration_minutes': 60
+            'DEEP_WORK_THRESHOLD': 1800,    # 30 minutes
+            'SHALLOW_THRESHOLD': 300,       # 5 minutes
+            'MICRO_SWITCH_THRESHOLD': 60,   # 1 minute
+            'RAPID_SWITCH_PENALTY': -15,
+            'MICRO_SWITCH_PENALTY': -5,
+            'SHALLOW_SWITCH_PENALTY': -3,
+            'DEEP_WORK_BONUS': 10,
+            'SHALLOW_WORK_PENALTY': -30,
+            'FRAGMENTATION_PENALTY': -40,
+            'target_duration_minutes': 60,
+
+            # New optional keys for refined logic in focus_utils
+            'SHORT_SWITCH_DEV_PENALTY_UNDER_10': -5,
+            'SHORT_SWITCH_NON_DEV_PENALTY_UNDER_10': -15,
+            'SHORT_SWITCH_DEV_PENALTY_UNDER_30': 0,
+            'SHORT_SWITCH_NON_DEV_PENALTY_UNDER_30': -10,
+            'CLUSTER_SWITCH_PENALTY': -2,
+            'FOCUS_PERIOD_REWARD': 10,
+            'DEEP_FOCUS_REWARD': 15,
+            'EXTENDED_FOCUS_REWARD': 20
         }
 
     def load_config(self, config_path: str) -> None:
@@ -153,9 +163,10 @@ class FocusSession:
         score_data = self.get_score_breakdown()
         current_score = score_data["score"]
         score_emoji = get_score_emoji(current_score)
+        # Simple color logic for demonstration
         score_color = "\033[92m" if current_score >= 70 else "\033[93m" if current_score >= 0 else "\033[91m"
 
-        print(f"\nDeep Work Score: {score_color}{current_score:.1f}/100 {score_emoji}\033[0m")
+        print(f"\nDeep Work Score: {score_color}{current_score:.1f} {score_emoji}\033[0m")
         print("\nScore Breakdown:")
         for component, value, explanation in score_data["components"]:
             if value is not None:
@@ -221,6 +232,11 @@ class FocusSession:
             "Deep Work Session Ended",
             f"Duration: {duration}\nSwitches: {len(self.violations)}\nScore: {final_score:.1f}/100"
         )
+
+    def calculate_current_score(self) -> float:
+        """Simple helper to get final score as float. Adjust as needed."""
+        score_data = self.get_score_breakdown()
+        return score_data["score"]
 
 def test_notification():
     """Test if notifications are working"""
