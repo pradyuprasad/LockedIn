@@ -130,6 +130,8 @@ def calculate_score_components(
         'localhost:3080',
         'claude.ai',
         'chatgpt.com'
+        'arxiv.org',
+        'Obsidian'
     }
 
     components = []
@@ -186,7 +188,10 @@ def calculate_score_components(
         bracket_award = 0
         bracket_reason = None
 
-        if duration >= 600:  # 10+ minutes
+        if duration >= 1200:
+            bracket_award = score_config.get('EXTENDED_FOCUS_REWARD', 20) + ((duration - 1200) // 60)
+            # every minute after 20 mins gets a point rewarding long focus sessions
+        elif duration >= 600:  # 10+ minutes
             bracket_award = score_config.get('EXTENDED_FOCUS_REWARD', 20)
             bracket_reason = "Sustained focus over 10m"
         elif duration >= 300:  # 5+ minutes
