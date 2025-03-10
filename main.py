@@ -84,6 +84,11 @@ def get_active_window_info():
         workspace = NSWorkspace.sharedWorkspace()
         active_app = workspace.activeApplication()
         app_name = active_app["NSApplicationName"]
+
+        # Skip tracking when computer is idle
+        if app_name == "loginwindow":
+            return "Idle","Computer Off", None
+
         if app_name in ["Safari", "Google Chrome", "Firefox", "Brave Browser"]:
             url, title = get_browser_info(app_name)
             return app_name, title.strip(), url.strip()
@@ -103,10 +108,13 @@ def insert_activity(conn, timestamp, app_name, window_title, url, session_name, 
     ''', (timestamp, app_name, window_title, url, session_name))
     conn.commit()
 
-    # Update the activity duration
-    activity_key = extract_domain(url) if url else app_name
-    if activity_key:
-        activity_duration[activity_key] += (time.time() - previous_time)
+
+    # Skip updating duration for idle time
+    if app_name != "Idle":
+        # Update the activity duration
+        activity_key = extract_domain(url) if url else app_name
+        if activity_key:
+            activity_duration[activity_key] += (time.time() - previous_time)
 
 
 def calculate_top_activities():

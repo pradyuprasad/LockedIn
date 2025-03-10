@@ -42,9 +42,9 @@ def process_activities(results):
 
         if last_timestamp and last_activity:
             duration = (current_timestamp - last_timestamp).total_seconds()
-            if duration > MAX_GAP or last_activity == "loginwindow":
+            if duration > MAX_GAP or last_activity == "Idle":
                 gaps.append((last_timestamp, current_timestamp, duration))
-            elif last_activity != "loginwindow":
+            elif last_activity != "Idle":
                 activity_summary[last_activity] += duration
                 total_duration += duration
 
@@ -136,7 +136,7 @@ def summary(hours, minutes):
     activities_table.add_column("Percentage", style="green")
 
     for activity, duration in sorted(activity_summary.items(), key=lambda x: x[1], reverse=True):
-        if activity != "loginwindow":
+        if activity != "Idle":
             percentage = (duration / total_duration) * 100
             if percentage > 0.5:
                 activities_table.add_row(
