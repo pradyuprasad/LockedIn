@@ -6,17 +6,18 @@ import time
 import sqlite3
 import subprocess
 from urllib.parse import urlparse
-from AppKit import NSWorkspace
+from AppKit import NSWorkspace #type: ignore
 import click
+from typing import Dict, Any
 
-activity_duration = defaultdict(int)
+activity_duration: Dict[Any, Any] = defaultdict(int)
 
 def format_elapsed_time(seconds):
     """Convert seconds into a human-readable format: days, hours, minutes, seconds."""
     days, remainder = divmod(seconds, 86400)
     hours, remainder = divmod(remainder, 3600)
     minutes, seconds = divmod(remainder, 60)
-    
+
     elapsed_time_str = []
     if days > 0:
         elapsed_time_str.append(f"{days}d")
@@ -25,7 +26,7 @@ def format_elapsed_time(seconds):
     if minutes > 0:
         elapsed_time_str.append(f"{minutes}m")
     elapsed_time_str.append(f"{seconds}s")
-    
+
     return ' '.join(elapsed_time_str)
 
 def extract_domain(url):
@@ -113,10 +114,10 @@ def calculate_top_activities():
     total_time = sum(activity_duration.values())
     if total_time == 0:
         return []
-    
+
     sorted_activities = sorted(activity_duration.items(), key=lambda x: x[1], reverse=True)
     top_5 = sorted_activities[:5]
-    
+
     return [(activity, (duration / total_time) * 100) for activity, duration in top_5]
 
 
@@ -165,12 +166,12 @@ def start():
             if current_session:
                 elapsed_time_session = int(time.time() - session_start_time)
                 session_start_str = time.strftime('%H:%M %d/%m/%Y', time.localtime(session_start_time))
-                
+
                 # Calculate days, hours, minutes, and seconds
                 days, remainder = divmod(elapsed_time_session, 86400)
                 hours, remainder = divmod(remainder, 3600)
                 minutes, seconds = divmod(remainder, 60)
-                
+
                 # Build the elapsed time string
                 elapsed_time_str = ""
                 if days > 0:
@@ -183,13 +184,13 @@ def start():
 
                 print(f"Current session: {current_session}")
                 print(f"Session started at: {session_start_str} (Elapsed: {format_elapsed_time(elapsed_time_session)})")
-                
+
                 # Display top 5 activities for the session
                 top_activities = calculate_top_activities()
                 display_top_activities(top_activities)
             else:
                 print("No active session.")
-                
+
                 # Display top 5 activities since tracking started
                 top_activities = calculate_top_activities()
                 display_top_activities(top_activities)

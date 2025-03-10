@@ -221,7 +221,7 @@ class FocusSession:
 
         if self.violations:
             print("\nDistraction breakdown:")
-            violation_counts = {}
+            violation_counts: Dict[str, int] = {}
             for v in self.violations:
                 violation_counts[v['app_or_site']] = violation_counts.get(v['app_or_site'], 0) + 1
 

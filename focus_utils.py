@@ -117,7 +117,7 @@ def calculate_activity_metrics(
 def calculate_score_components(
     metrics: Dict[str, Any],
     score_config: Dict[str, int]
-) -> Tuple[List[Tuple[str, float, str]], float]:
+) -> tuple[list[tuple[str, int, str]], int]:
     """
     Calculate score components based on metrics.
     Returns (components, total_score).
