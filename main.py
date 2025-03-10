@@ -3,12 +3,12 @@ import re
 import select
 import sys
 import time
-import sqlite3
 import subprocess
 from urllib.parse import urlparse
 from AppKit import NSWorkspace #type: ignore
 import click
 from typing import Dict, Any
+from database_manager import DatabaseManager
 
 activity_duration: Dict[Any, Any] = defaultdict(int)
 
@@ -39,8 +39,6 @@ def extract_domain(url):
         return domain
     except Exception:
         return None
-
-
 
 def run_applescript(script):
     """Run an AppleScript command and return the result."""
@@ -99,15 +97,9 @@ def get_active_window_info():
         print(f"Error getting window info: {e}")
         return None, None, None
 
-def insert_activity(conn, timestamp, app_name, window_title, url, session_name, previous_time):
+def insert_activity(db_manager, timestamp, app_name, window_title, url, session_name, previous_time):
     """Insert a record of the activity into the database and update activity duration."""
-    cursor = conn.cursor()
-    cursor.execute('''
-    INSERT INTO activities (timestamp, app_name, window_title, url, session)
-    VALUES (?, ?, ?, ?, ?)
-    ''', (timestamp, app_name, window_title, url, session_name))
-    conn.commit()
-
+    db_manager.insert_activity(timestamp, app_name, window_title, url, session_name)
 
     # Skip updating duration for idle time
     if app_name != "Idle":
@@ -115,7 +107,6 @@ def insert_activity(conn, timestamp, app_name, window_title, url, session_name, 
         activity_key = extract_domain(url) if url else app_name
         if activity_key:
             activity_duration[activity_key] += (time.time() - previous_time)
-
 
 def calculate_top_activities():
     """Calculate and return the top 5 activities by duration."""
@@ -128,7 +119,6 @@ def calculate_top_activities():
 
     return [(activity, (duration / total_time) * 100) for activity, duration in top_5]
 
-
 def display_top_activities(activities):
     """Display the top 5 activities with their percentages."""
     if activities:
@@ -138,7 +128,6 @@ def display_top_activities(activities):
     else:
         print("No activities to display.")
 
-
 @click.group()
 def cli():
     """CLI application for tracking window activities."""
@@ -147,7 +136,8 @@ def cli():
 @cli.command()
 def start():
     """Start tracking activities."""
-    conn = sqlite3.connect('tracker.db')
+    db_manager = DatabaseManager()
+    db_manager.setup_database()
     current_session = None
     session_start_time = None
     overall_start_time = time.time()
@@ -162,7 +152,7 @@ def start():
             app_name, window_title, url = get_active_window_info()
 
             if app_name:
-                insert_activity(conn, current_time, app_name, window_title, url, current_session, previous_time)
+                insert_activity(db_manager, current_time, app_name, window_title, url, current_session, previous_time)
                 previous_time = time.time()
 
             # Clear the console (for a cleaner interface)
@@ -229,8 +219,6 @@ def start():
             time.sleep(0.9)
     except KeyboardInterrupt:
         print("\nTracking stopped.")
-    finally:
-        conn.close()
 
 @cli.command()
 def stop():
