@@ -3,6 +3,7 @@ import subprocess
 from urllib.parse import urlparse
 from typing import Tuple, Optional
 
+
 def format_elapsed_time(seconds: int) -> str:
     """Convert seconds into a human-readable format: days, hours, minutes, seconds."""
     days, remainder = divmod(seconds, 86400)
@@ -20,6 +21,7 @@ def format_elapsed_time(seconds: int) -> str:
 
     return " ".join(elapsed_time_str)
 
+
 def extract_domain(url: str) -> Optional[str]:
     """Extract the domain name from a URL."""
     try:
@@ -31,6 +33,7 @@ def extract_domain(url: str) -> Optional[str]:
     except Exception:
         return None
 
+
 def run_applescript(script: str) -> Optional[str]:
     """Run an AppleScript command and return the result."""
     try:
@@ -40,6 +43,7 @@ def run_applescript(script: str) -> Optional[str]:
         return result.stdout.strip()
     except subprocess.CalledProcessError:
         return None
+
 
 def get_browser_info(app_name: str) -> Tuple[Optional[str], Optional[str]]:
     """Get the current tab's URL and title for supported browsers."""
@@ -53,6 +57,7 @@ def get_browser_info(app_name: str) -> Tuple[Optional[str], Optional[str]]:
     if result:
         return result.split("|", 1)
     return None, None
+
 
 def get_window_title(app_name: str) -> str:
     """Get the window title for non-browser applications."""

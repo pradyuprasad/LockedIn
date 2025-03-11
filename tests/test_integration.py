@@ -7,6 +7,7 @@ import tempfile
 
 from database_manager import DatabaseManager
 
+
 class TestIntegrationMainFlow(unittest.TestCase):
     """Integration tests for the main activity tracking flow"""
 
@@ -17,33 +18,36 @@ class TestIntegrationMainFlow(unittest.TestCase):
         self.db_manager = DatabaseManager(self.temp_db.name)
         self.db_manager.setup_database()
 
-        self.db_path_patcher = patch('main.DatabaseManager')
+        self.db_path_patcher = patch("main.DatabaseManager")
         self.mock_db_manager_class = self.db_path_patcher.start()
         self.mock_db_manager = MagicMock()
         self.mock_db_manager_class.return_value = self.mock_db_manager
 
         # Patch get_active_window_info to return predictable values
-        self.window_info_patcher = patch('tracking.activity_tracker.ActivityTracker.get_active_window_info')
+        self.window_info_patcher = patch(
+            "tracking.activity_tracker.ActivityTracker.get_active_window_info"
+        )
         self.mock_window_info = self.window_info_patcher.start()
 
         # Patch select.select to simulate user input
-        self.select_patcher = patch('select.select')
+        self.select_patcher = patch("select.select")
         self.mock_select = self.select_patcher.start()
 
         # Patch sys.stdin for input simulation
-        self.stdin_patcher = patch('sys.stdin')
+        self.stdin_patcher = patch("sys.stdin")
         self.mock_stdin = self.stdin_patcher.start()
 
         # Patch time.sleep to speed up tests
-        self.sleep_patcher = patch('time.sleep')
+        self.sleep_patcher = patch("time.sleep")
         self.mock_sleep = self.sleep_patcher.start()
 
         # Capture stdout
-        self.stdout_patcher = patch('sys.stdout', new_callable=StringIO)
+        self.stdout_patcher = patch("sys.stdout", new_callable=StringIO)
         self.mock_stdout = self.stdout_patcher.start()
 
         # Import the module here to ensure all patches are applied
         import main
+
         self.main_module = main
 
     def tearDown(self):
@@ -58,7 +62,7 @@ class TestIntegrationMainFlow(unittest.TestCase):
         # Remove test database
         os.unlink(self.temp_db.name)
 
-    @patch('click.Command.invoke')
+    @patch("click.Command.invoke")
     def test_activity_tracking_flow(self, mock_invoke):
         """Test the main activity tracking flow by directly calling the function"""
         # Get the actual function that would be called by the Click command
@@ -73,7 +77,7 @@ class TestIntegrationMainFlow(unittest.TestCase):
             ("Safari", "Example Page", "https://example.com"),
             ("Visual Studio Code", "main.py", None),
             # Add KeyboardInterrupt to stop the loop
-            KeyboardInterrupt
+            KeyboardInterrupt,
         ]
 
         # Setup mock select to simulate no user input
@@ -93,7 +97,7 @@ class TestIntegrationMainFlow(unittest.TestCase):
         output = self.mock_stdout.getvalue()
         self.assertIn("Activity tracking started", output)
 
-    @patch('click.Command.invoke')
+    @patch("click.Command.invoke")
     def test_session_management(self, mock_invoke):
         """Test session management functionality"""
         # Get the actual function that would be called by the Click command
@@ -105,7 +109,7 @@ class TestIntegrationMainFlow(unittest.TestCase):
         # Setup mock window info
         self.mock_window_info.side_effect = [
             ("Terminal", "Terminal Window", None),
-            KeyboardInterrupt
+            KeyboardInterrupt,
         ]
 
         # Setup mock select to simulate user input for new session
@@ -113,7 +117,7 @@ class TestIntegrationMainFlow(unittest.TestCase):
         self.mock_stdin.readline.return_value = "n\n"
 
         # Mock input function for session name
-        with patch('builtins.input', return_value="Test Session"):
+        with patch("builtins.input", return_value="Test Session"):
             try:
                 # Call the function directly instead of through Click
                 start_function()
@@ -126,12 +130,13 @@ class TestIntegrationMainFlow(unittest.TestCase):
             "Terminal",
             "Terminal Window",
             None,
-            unittest.mock.ANY  # session name - may be None in the implementation
+            unittest.mock.ANY,  # session name - may be None in the implementation
         )
 
         # Check output contains session info
         output = self.mock_stdout.getvalue()
         self.assertIn("New session started: Test Session", output)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()
