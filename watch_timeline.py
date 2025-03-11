@@ -2,8 +2,10 @@ import time
 import os
 from activity_viz import timeline
 
+
 def clear_screen():
-    os.system('clear' if os.name == 'posix' else 'cls')
+    os.system("clear" if os.name == "posix" else "cls")
+
 
 REFRESH_INTERVAL = 10  # seconds
 
