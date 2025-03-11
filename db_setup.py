@@ -1,7 +1,9 @@
 import sqlite3
+from database_manager import DatabaseManager
 
 def get_db_connection():
-    return sqlite3.connect('tracker.db')
+    db_manager = DatabaseManager()
+    return db_manager.get_connection()
 
 def add_column(cursor, table_name, column_name, column_type):
     # Check if the column exists

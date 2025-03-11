@@ -1,18 +1,19 @@
 import os
 import time
-import sqlite3
 from datetime import datetime
 from activity_viz import process_activities, format_time, truncate_string
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 from rich import box
+from database_manager import DatabaseManager
 
 console = Console()
 REFRESH_INTERVAL = 10  # Refresh every 10 seconds
 
 def get_db_connection():
-    return sqlite3.connect('tracker.db')
+    db_manager = DatabaseManager()
+    return db_manager.get_connection()
 
 def clear_screen():
     os.system('clear' if os.name == 'posix' else 'cls')

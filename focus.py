@@ -2,7 +2,6 @@ import time
 import click
 from datetime import datetime
 from pathlib import Path
-import sqlite3
 import yaml
 from typing import Dict, Optional
 
@@ -10,11 +9,12 @@ from focus_utils import (
     notify, calculate_activity_metrics, calculate_score_components,
     get_score_emoji
 )
+from database_manager import DatabaseManager
 
 class FocusSession:
     def __init__(self, config_path='focus_config.yml'):
         self.load_config(config_path)
-        self.db_conn = sqlite3.connect('tracker.db')
+        self.db_manager = DatabaseManager()
         self.session_start = None
         self.last_violation_time = None
         self.violations = []
@@ -79,7 +79,8 @@ class FocusSession:
         if not self.session_start:
             return {"score": 0, "components": [], "timeline": []}
 
-        cursor = self.db_conn.cursor()
+        conn = self.db_manager.get_connection()
+        cursor = conn.cursor()
         session_start_str = self.session_start.strftime("%Y-%m-%d %H:%M:%S")
         cursor.execute('''
             SELECT timestamp, app_name, url
@@ -89,6 +90,7 @@ class FocusSession:
         ''', (session_start_str,))
 
         activities = cursor.fetchall()
+        conn.close()
         metrics = calculate_activity_metrics(activities, self.score_config)
         components, final_score = calculate_score_components(metrics, self.score_config)
 
@@ -110,7 +112,8 @@ class FocusSession:
         return f"{minutes}:{seconds:02d}"
 
     def check_current_activity(self) -> None:
-        cursor = self.db_conn.cursor()
+        conn = self.db_manager.get_connection()
+        cursor = conn.cursor()
         cursor.execute('''
             SELECT timestamp, app_name, url
             FROM activities
@@ -119,6 +122,7 @@ class FocusSession:
         ''')
 
         row = cursor.fetchone()
+        conn.close()
         if not row:
             return
 
