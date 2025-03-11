@@ -23,7 +23,7 @@ class TestIntegrationMainFlow(unittest.TestCase):
         self.mock_db_manager_class.return_value = self.mock_db_manager
 
         # Patch get_active_window_info to return predictable values
-        self.window_info_patcher = patch('main.get_active_window_info')
+        self.window_info_patcher = patch('tracking.activity_tracker.ActivityTracker.get_active_window_info')
         self.mock_window_info = self.window_info_patcher.start()
 
         # Patch select.select to simulate user input
