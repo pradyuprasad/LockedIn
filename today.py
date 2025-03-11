@@ -1,21 +1,25 @@
 import os
 import time
-import sqlite3
 from datetime import datetime
 from activity_viz import process_activities, format_time, truncate_string
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 from rich import box
+from database_manager import DatabaseManager
 
 console = Console()
 REFRESH_INTERVAL = 10  # Refresh every 10 seconds
 
+
 def get_db_connection():
-    return sqlite3.connect('tracker.db')
+    db_manager = DatabaseManager()
+    return db_manager.get_connection()
+
 
 def clear_screen():
-    os.system('clear' if os.name == 'posix' else 'cls')
+    os.system("clear" if os.name == "posix" else "cls")
+
 
 def visualize_today():
     # Connect to the database
@@ -26,12 +30,12 @@ def visualize_today():
     now = datetime.now()
     start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
-    query = '''
+    query = """
     SELECT *
     FROM activities
     WHERE timestamp >= ? AND app_name != 'loginwindow'
     ORDER BY timestamp
-    '''
+    """
 
     # Execute query
     cursor.execute(query, (start_of_day.strftime("%Y-%m-%d %H:%M:%S"),))
@@ -41,8 +45,13 @@ def visualize_today():
     activity_summary, total_duration, gaps = process_activities(results)
 
     # Display the summary panel
-    console.print(Panel("[bold cyan]Activity Summary Since Midnight[/bold cyan]",
-                        expand=False, border_style="cyan"))
+    console.print(
+        Panel(
+            "[bold cyan]Activity Summary Since Midnight[/bold cyan]",
+            expand=False,
+            border_style="cyan",
+        )
+    )
 
     # Create the summary table
     table = Table(title="Today's Activities", box=box.ROUNDED)
@@ -50,9 +59,13 @@ def visualize_today():
     table.add_column("Duration", style="magenta", justify="right")
     table.add_column("Percentage", style="green", justify="right")
 
-    for activity, duration in sorted(activity_summary.items(), key=lambda x: x[1], reverse=True):
+    for activity, duration in sorted(
+        activity_summary.items(), key=lambda x: x[1], reverse=True
+    ):
         percentage = (duration / total_duration) * 100
-        table.add_row(truncate_string(activity, 50), format_time(duration), f"{percentage:.2f}%")
+        table.add_row(
+            truncate_string(activity, 50), format_time(duration), f"{percentage:.2f}%"
+        )
 
     console.print(table)
 
@@ -60,16 +73,21 @@ def visualize_today():
     console.print(f"[green]Total Tracked Time:[/green] {format_time(total_duration)}")
     if gaps:
         total_gap_time = sum(duration for _, _, duration in gaps)
-        console.print(f"[yellow]Total Gap Time (Inactivity):[/yellow] {format_time(total_gap_time)}")
+        console.print(
+            f"[yellow]Total Gap Time (Inactivity):[/yellow] {format_time(total_gap_time)}"
+        )
         console.print(f"[yellow]Number of Gaps Detected:[/yellow] {len(gaps)}")
 
     conn.close()
+
 
 if __name__ == "__main__":
     try:
         while True:
             clear_screen()
-            console.print(f"Updates every {REFRESH_INTERVAL} seconds...\n", style="bold yellow")
+            console.print(
+                f"Updates every {REFRESH_INTERVAL} seconds...\n", style="bold yellow"
+            )
             visualize_today()
             time.sleep(REFRESH_INTERVAL)
     except KeyboardInterrupt:

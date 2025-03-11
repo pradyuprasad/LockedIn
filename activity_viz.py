@@ -1,5 +1,4 @@
 import click
-import sqlite3
 from collections import defaultdict
 from datetime import datetime, timedelta
 from urllib.parse import urlparse
@@ -7,14 +6,18 @@ from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 from rich import box
+from database_manager import DatabaseManager
 
 MAX_GAP = 10  # Maximum gap in seconds (10 seconds) before considering it as inactivity
 MAX_ACTIVITY_LENGTH = 50  # Maximum length for activity names before truncation
 
 console = Console()
 
+
 def get_db_connection():
-    return sqlite3.connect('tracker.db')
+    db_manager = DatabaseManager()
+    return db_manager.get_connection()
+
 
 def get_domain(url):
     try:
@@ -22,8 +25,10 @@ def get_domain(url):
     except Exception:
         return "Unknown"
 
+
 def truncate_string(s, max_length):
-    return s[:max_length-3] + '...' if len(s) > max_length else s
+    return s[: max_length - 3] + "..." if len(s) > max_length else s
+
 
 def process_activities(results):
     activity_summary = defaultdict(int)
@@ -36,8 +41,12 @@ def process_activities(results):
         timestamp, app_name, window_title, url = row[1:5]
         current_timestamp = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
 
-        activity = url if app_name in ['Brave Browser', 'Google Chrome', 'Safari', 'Firefox'] else app_name
-        if activity.startswith('http'):
+        activity = (
+            url
+            if app_name in ["Brave Browser", "Google Chrome", "Safari", "Firefox"]
+            else app_name
+        )
+        if activity.startswith("http"):
             activity = get_domain(activity)
 
         if last_timestamp and last_activity:
@@ -53,26 +62,31 @@ def process_activities(results):
 
     return activity_summary, total_duration, gaps
 
+
 def format_time(seconds):
     hours, remainder = divmod(int(seconds), 3600)
     minutes, seconds = divmod(remainder, 60)
     return f"{hours}h {minutes}m {seconds}s"
+
 
 @click.group()
 def cli():
     """Personal Activity Tracker CLI"""
     pass
 
+
 @cli.command()
-@click.option('--hours', type=int, help='Number of hours to summarize')
-@click.option('--minutes', type=int, help='Number of minutes to summarize')
+@click.option("--hours", type=int, help="Number of hours to summarize")
+@click.option("--minutes", type=int, help="Number of minutes to summarize")
 def summary(hours, minutes):
     """Provide a summary of activities for the last specified time period"""
     if hours is None and minutes is None:
         console.print("[bold red]Please specify either --hours or --minutes[/bold red]")
         return
     if hours is not None and minutes is not None:
-        console.print("[bold red]Please specify either --hours or --minutes, not both[/bold red]")
+        console.print(
+            "[bold red]Please specify either --hours or --minutes, not both[/bold red]"
+        )
         return
 
     if hours is not None:
@@ -90,21 +104,28 @@ def summary(hours, minutes):
     now = datetime.now()
     start_time = now - time_delta
 
-    query = '''
+    query = """
     SELECT *
     FROM activities
     WHERE timestamp >= ? AND timestamp < ?
     ORDER BY timestamp
-    '''
+    """
 
-    cursor.execute(query, (start_time.strftime("%Y-%m-%d %H:%M:%S"),
-                           now.strftime("%Y-%m-%d %H:%M:%S")))
+    cursor.execute(
+        query,
+        (start_time.strftime("%Y-%m-%d %H:%M:%S"), now.strftime("%Y-%m-%d %H:%M:%S")),
+    )
     results = cursor.fetchall()
 
     activity_summary, total_duration, gaps = process_activities(results)
 
-    console.print(Panel(f"[bold cyan]Activity Summary for the last {time_value} {time_unit}[/bold cyan]",
-                        expand=False, border_style="cyan"))
+    console.print(
+        Panel(
+            f"[bold cyan]Activity Summary for the last {time_value} {time_unit}[/bold cyan]",
+            expand=False,
+            border_style="cyan",
+        )
+    )
 
     if results:
         console.print(f"[green]Data range:[/green] {results[0][1]} to {results[-1][1]}")
@@ -121,48 +142,61 @@ def summary(hours, minutes):
     console.print(table)
 
     coverage_percentage = (total_duration / requested_duration) * 100
-    console.print(f"[bold green]Tracking coverage:[/bold green] {coverage_percentage:.2f}%")
+    console.print(
+        f"[bold green]Tracking coverage:[/bold green] {coverage_percentage:.2f}%"
+    )
 
     if gaps:
-        console.print(f"\n[yellow]Detected gaps within tracked time:[/yellow] {len(gaps)}")
+        console.print(
+            f"\n[yellow]Detected gaps within tracked time:[/yellow] {len(gaps)}"
+        )
         console.print("[yellow]Largest gaps within tracked time:[/yellow]")
         for start, end, duration in sorted(gaps, key=lambda x: x[2], reverse=True)[:5]:
             console.print(f"  From {start} to {end} ({format_time(duration)})")
 
-    console.print("\n[bold cyan]Top activities (% of tracked time, excluding sleep):[/bold cyan]")
+    console.print(
+        "\n[bold cyan]Top activities (% of tracked time, excluding sleep):[/bold cyan]"
+    )
     activities_table = Table(box=box.SIMPLE)
     activities_table.add_column("Activity", style="cyan")
     activities_table.add_column("Duration", style="magenta")
     activities_table.add_column("Percentage", style="green")
 
-    for activity, duration in sorted(activity_summary.items(), key=lambda x: x[1], reverse=True):
+    for activity, duration in sorted(
+        activity_summary.items(), key=lambda x: x[1], reverse=True
+    ):
         if activity != "Idle":
             percentage = (duration / total_duration) * 100
             if percentage > 0.5:
                 activities_table.add_row(
                     truncate_string(activity, MAX_ACTIVITY_LENGTH),
                     format_time(duration),
-                    f"{percentage:.2f}%"
+                    f"{percentage:.2f}%",
                 )
 
     console.print(activities_table)
 
     # Add a note about sleep time
     sleep_time = sum(duration for start, end, duration in gaps if duration > MAX_GAP)
-    console.print(f"\n[yellow]Note: Your device was likely asleep or locked for approximately {format_time(sleep_time)}.[/yellow]")
+    console.print(
+        f"\n[yellow]Note: Your device was likely asleep or locked for approximately {format_time(sleep_time)}.[/yellow]"
+    )
 
     conn.close()
 
+
 @cli.command()
-@click.option('--hours', type=int, help='Number of hours to show in timeline')
-@click.option('--minutes', type=int, help='Number of minutes to show in timeline')
+@click.option("--hours", type=int, help="Number of hours to show in timeline")
+@click.option("--minutes", type=int, help="Number of minutes to show in timeline")
 def timeline(hours, minutes):
     """Show a timeline of activities for the specified time period"""
     if hours is None and minutes is None:
         console.print("[bold red]Please specify either --hours or --minutes[/bold red]")
         return
     if hours is not None and minutes is not None:
-        console.print("[bold red]Please specify either --hours or --minutes, not both[/bold red]")
+        console.print(
+            "[bold red]Please specify either --hours or --minutes, not both[/bold red]"
+        )
         return
 
     if hours is not None:
@@ -180,22 +214,29 @@ def timeline(hours, minutes):
     now = datetime.now()
     start_time = now - time_delta
 
-    query = '''
+    query = """
     SELECT timestamp, app_name, window_title, url
     FROM activities
     WHERE timestamp >= ?
     ORDER BY timestamp
-    '''
+    """
 
     cursor.execute(query, (start_time.strftime("%Y-%m-%d %H:%M:%S"),))
     results = cursor.fetchall()
 
     if not results:
-        console.print(f"[yellow]No activity data found for the last {time_value} {time_unit}[/yellow]")
+        console.print(
+            f"[yellow]No activity data found for the last {time_value} {time_unit}[/yellow]"
+        )
         return
 
-    console.print(Panel(f"[bold cyan]Activity Timeline (Last {time_value} {time_unit})[/bold cyan]",
-                       expand=False, border_style="cyan"))
+    console.print(
+        Panel(
+            f"[bold cyan]Activity Timeline (Last {time_value} {time_unit})[/bold cyan]",
+            expand=False,
+            border_style="cyan",
+        )
+    )
 
     timeline_table = Table(box=box.ROUNDED)
     timeline_table.add_column("Start", style="cyan", width=8)
@@ -204,7 +245,7 @@ def timeline(hours, minutes):
     timeline_table.add_column("Activity", style="green")
 
     MIN_DURATION = 10  # Minimum duration to show an activity (in seconds)
-    MERGE_GAP = 30    # Maximum gap to merge same activities (in seconds)
+    MERGE_GAP = 30  # Maximum gap to merge same activities (in seconds)
 
     current_activity = None
     activity_start = None
@@ -221,8 +262,12 @@ def timeline(hours, minutes):
         timestamp, app_name, window_title, url = row
         current_time = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
 
-        activity = url if app_name in ['Brave Browser', 'Google Chrome', 'Safari', 'Firefox'] else app_name
-        if activity and activity.startswith('http'):
+        activity = (
+            url
+            if app_name in ["Brave Browser", "Google Chrome", "Safari", "Firefox"]
+            else app_name
+        )
+        if activity and activity.startswith("http"):
             activity = get_domain(activity)
 
         if current_activity != activity:
@@ -246,9 +291,11 @@ def timeline(hours, minutes):
     i = 0
     while i < len(activities):
         start, end, duration, activity = activities[i]
-        while i + 1 < len(activities) and \
-              activities[i + 1][3] == activity and \
-              (activities[i + 1][0] - end).total_seconds() <= MERGE_GAP:
+        while (
+            i + 1 < len(activities)
+            and activities[i + 1][3] == activity
+            and (activities[i + 1][0] - end).total_seconds() <= MERGE_GAP
+        ):
             end = activities[i + 1][1]
             duration = (end - start).total_seconds()
             i += 1
@@ -257,7 +304,6 @@ def timeline(hours, minutes):
 
     merged = list(reversed(merged))
 
-
     # Add rows to table with gap indicators
     last_end = None
     for start_time, end_time, duration, activity in merged:
@@ -265,21 +311,20 @@ def timeline(hours, minutes):
             gap = (start_time - last_end).total_seconds()
             if gap > MERGE_GAP:
                 timeline_table.add_row(
-                    "...",
-                    "...",
-                    f"({format_time(gap)})",
-                    "[dim]Gap[/dim]"
+                    "...", "...", f"({format_time(gap)})", "[dim]Gap[/dim]"
                 )
 
         timeline_table.add_row(
             start_time.strftime("%H:%M"),
             end_time.strftime("%H:%M"),
             format_time(duration),
-            truncate_string(activity, MAX_ACTIVITY_LENGTH)
+            truncate_string(activity, MAX_ACTIVITY_LENGTH),
         )
         last_end = end_time
 
     console.print(timeline_table)
     conn.close()
-if __name__ == '__main__':
+
+
+if __name__ == "__main__":
     cli()

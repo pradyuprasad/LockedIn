@@ -9,8 +9,22 @@ dependencies = [
     "plotext>=5.3.2",
     "pyobjc-framework-cocoa>=10.3.2",
     "pyobjc>=10.3.2",
+    "pytest>=8.3.5",
     "pytz>=2024.2",
     "pyyaml>=6.0.2",
     "rich>=13.9.4",
     "types-pyyaml>=6.0.12.20241230",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+]
+
+[tool.pytest]
+testpaths = ["tests"]
+python_files = "test_*.py"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
