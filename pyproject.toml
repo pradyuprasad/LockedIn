@@ -6,14 +6,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "click>=8.1.7",
-    "plotext>=5.3.2",
-    "pyobjc-framework-cocoa>=10.3.2",
-    "pyobjc>=10.3.2",
-    "pytest>=8.3.5",
-    "pytz>=2024.2",
-    "pyyaml>=6.0.2",
     "rich>=13.9.4",
-    "types-pyyaml>=6.0.12.20241230",
 ]
 
 [project.optional-dependencies]
@@ -28,3 +21,16 @@ python_files = "test_*.py"
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+
+[tool.ruff]
+lint.select = ["D"] # Select all pydocstyle rules
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+    "ruff>=0.13.3",
+    "ty>=0.0.1a21",
+]
+
