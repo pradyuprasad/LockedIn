@@ -1,7 +1,7 @@
 #!/bin/bash
 # for sending to LLMs
 
-for file in *.py; do
+find . -type f -name "*.py" -not -path "*/.*" | while read -r file; do
     echo -e "\n========== $file ==========\n"
     cat "$file"
     echo -e "\n================================\n"
