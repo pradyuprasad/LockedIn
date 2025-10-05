@@ -8,7 +8,7 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from src.config import DB_DIR, DB_PATH
-from src.schema import SCHEMA
+from src.storage.schema import SCHEMA
 from src.logging import setup_logging, get_logger
 
 
