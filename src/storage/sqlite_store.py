@@ -162,3 +162,37 @@ class SQLiteStorage(ActivityStorage):
     def close(self) -> None:
         """Close the database connection."""
         self.conn.close()
+
+    def get_session_activities(self, session_id: str) -> list[ActivitySnapshot]:
+        """Retrieve all activities for a given session.
+
+        Args:
+            session_id: The session ID to retrieve activities for.
+
+        Returns:
+            List of ActivitySnapshot objects, ordered by timestamp.
+        """
+        cursor = self.conn.cursor()
+        cursor.execute(
+            """
+            SELECT timestamp, app_name, window_title, url, domain
+            FROM activities
+            WHERE session_id = ?
+            ORDER BY timestamp ASC
+            """,
+            (session_id,),
+        )
+
+        activities = []
+        for row in cursor.fetchall():
+            activities.append(
+                ActivitySnapshot(
+                    timestamp=datetime.fromisoformat(row["timestamp"]),
+                    app_name=row["app_name"],
+                    window_title=row["window_title"],
+                    url=row["url"],
+                    domain=row["domain"],
+                )
+            )
+
+        return activities

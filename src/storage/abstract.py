@@ -70,3 +70,15 @@ class ActivityStorage(ABC):
             KeyError: If session_id doesn't exist.
         """
         pass
+
+    @abstractmethod
+    def get_session_activities(self, session_id: str) -> list[ActivitySnapshot]:
+        """Retrieve all activities for a given session.
+
+        Args:
+            session_id: The session ID to retrieve activities for.
+
+        Returns:
+            List of ActivitySnapshot objects, ordered by timestamp.
+        """
+        pass
